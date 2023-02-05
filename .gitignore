@@ -1,0 +1,25 @@
+# This file is used to ignore files which are generated
+# ----------------------------------------------------------------------------
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+Makefile
+
+# Hidden Folders
+.git
+.vs
+.idea
+
+# Generated Files
+/out
+
+# Hidden System Files
+.DS_Store
+Thumbs.DB
+
+# Local libraries
+/heob
+/ffmpegwindows64
+
+
