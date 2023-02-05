@@ -1,0 +1,6 @@
+[submodule "Qt-Advanced-Docking-System"]
+	path = Qt-Advanced-Docking-System
+	url = https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System
+[submodule "BreezeStyleSheets"]
+	path = BreezeStyleSheets
+	url = https://github.com/Alexhuszagh/BreezeStyleSheets
