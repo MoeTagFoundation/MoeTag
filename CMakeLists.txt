@@ -180,3 +180,7 @@ message("Copying over tags")
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources/tags.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources/)
 
+# Default endpoints
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/danbooru.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints)
+
+

@@ -92,9 +92,15 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     // CONFIG BUTTON
     QComboBox* networkConfiguration = new QComboBox(groupBox);
     //networkConfiguration->setText(tr("Config"));
-    networkConfiguration->addItem(tr("Danbooru"));
-    networkConfiguration->addItem(tr("Gelbooru"));
-    networkConfiguration->addItem(tr("Safebooru"));
+
+    QStringList endpoints = directoryIndexer.getEndpointMap().keys();
+    for (QString endpoint : endpoints) {
+        networkConfiguration->addItem(endpoint);
+    }
+    connect(networkConfiguration, &QComboBox::currentTextChanged, [=](const QString& txt) {
+        directoryIndexer.setEndpoint(txt);
+    });
+    directoryIndexer.setEndpoint(networkConfiguration->currentText());
 
     groupBox->setLayout(groupBoxHorizontal);
     groupBoxHorizontal->addWidget(directoryButtonNetwork);
@@ -237,6 +243,7 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
         directoryButtonNetwork->setEnabled(!indexing);
         directoryButtonNextPage->setEnabled(!indexing);
         directoryButtonPreviousPage->setEnabled(!indexing);
+        networkConfiguration->setEnabled(!indexing);
     });
 
     connect(&directoryPopulator, &DirectoryPopulator::previewProgress, this, [&](int progress, int max) {

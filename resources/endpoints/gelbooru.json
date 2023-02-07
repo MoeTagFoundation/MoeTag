@@ -1,0 +1,15 @@
+{
+  "name": "Gelbooru",
+  "endpoint": {
+    "url": "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=[page]&tags=[search]",
+    "type": "json_api"
+  },
+  "properties": {
+    "preview": "preview_url",
+    "full": "file_url",
+    "root": "post",
+    "tags": {
+      "general": "tags"
+    }
+  }
+}

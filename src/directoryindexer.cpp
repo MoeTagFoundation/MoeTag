@@ -6,9 +6,68 @@
 #include <QJsonObject>
 #include <QtConcurrent>
 
+// todo: put all hard-coded paths into a config
+static QString epBaseDir("./resources/endpoints/");
+
 DirectoryIndexer::DirectoryIndexer()
 {
     setCurrentlyIndexing(false);
+
+    qDebug() << "======= loading endpoints =======";
+    QDir epDir(epBaseDir);
+    QStringList eps = epDir.entryList(QStringList() << "*.json" << "*.JSON", QDir::Files);
+    for (QString ep : eps)
+    {
+        QFile epFile(epBaseDir + ep);
+        if (epFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QByteArray epBytes = epFile.readAll();
+            epFile.close();
+            QJsonDocument epJson = QJsonDocument::fromJson(epBytes);
+            if (!epJson.isNull() && !epJson.isEmpty())
+            {
+                // Root
+                DirectoryEndpoint directoryEndpoint;
+                QString pName = epJson.object().value("name").toString();
+				directoryEndpoint.name = pName;
+                // Root/Endpoint
+                DirectoryEndpointProperties directoryEndpointProperties;
+                QJsonObject pEndpoint = epJson.object().value("endpoint").toObject();
+                directoryEndpointProperties.url = pEndpoint.value("url").toString();
+                directoryEndpoint.endpoint = directoryEndpointProperties;
+                // Root/Properties
+                DirectoryProperties directoryProperties;
+                QJsonObject pProperties = epJson.object().value("properties").toObject();
+                directoryProperties.preview = pProperties.value("preview").toString();
+                directoryProperties.full = pProperties.value("full").toString();
+                if (pProperties.contains("root")) {
+                    directoryProperties.root = pProperties.value("root").toString();
+                } else { directoryProperties.root = std::nullopt; }
+                // Root/Properties/Tags
+                DirectoryPropertiesTags directoryPropertiesTags;
+                QJsonObject pPropertiesTags = pProperties.value("tags").toObject();
+                if (pPropertiesTags.contains("artist"))
+                    directoryPropertiesTags.artist = pPropertiesTags.value("artist").toString();
+                if (pPropertiesTags.contains("copyright"))
+                    directoryPropertiesTags.copyright = pPropertiesTags.value("copyright").toString();
+                if (pPropertiesTags.contains("character"))
+					directoryPropertiesTags.character = pPropertiesTags.value("character").toString();
+				if (pPropertiesTags.contains("general"))
+                    directoryPropertiesTags.general = pPropertiesTags.value("general").toString();
+                if (pPropertiesTags.contains("meta"))
+                    directoryPropertiesTags.meta = pPropertiesTags.value("meta").toString();
+                directoryProperties.tags = directoryPropertiesTags;
+                directoryEndpoint.properties = directoryProperties;
+                // Insert
+                endpointMap.insert(ep, directoryEndpoint);
+				qDebug() << "debug: loading in " << ep << " with name " << pName;
+            } else {
+                qWarning() << "warning: epJson null for: " << ep;
+            }
+        }
+        else {
+            qWarning() << "warning: failed to open epFile: " << ep;
+        }
+    }
 
     extensionMap.insert(".png", FileType::IMAGE);
     extensionMap.insert(".bmp", FileType::IMAGE);
@@ -29,14 +88,20 @@ DirectoryIndexer::DirectoryIndexer()
 
         QNetworkReply::NetworkError error = reply->error();
         if (error == QNetworkReply::NetworkError::NoError) {
+			DirectoryEndpoint ep = endpointMap[currentEndpoint];
+
             QByteArray jsonBytes = reply->readAll();
             QString jsonString(jsonBytes.toStdString().c_str());
             QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonString.toUtf8());
 
             if(jsonDocument.isNull()) { qWarning("warning: json null in indexer network"); return; }
-            if(!jsonDocument.isArray()) { qWarning("warning: document non-array in indexer network"); return; }
 
-            QJsonArray array = jsonDocument.array();
+            QJsonArray array;
+            if (ep.properties.root.has_value()) {
+                array = jsonDocument.object().value(ep.properties.root.value()).toArray();
+            } else {
+                array = jsonDocument.array();
+            }
 
             if (array.count() == 0)
             {
@@ -55,7 +120,7 @@ DirectoryIndexer::DirectoryIndexer()
                     result.uuid = QUuid::createUuid();
 
                     // ADD PREVIEW
-                    QJsonValueRef previewObject = subObject["preview_file_url"];
+                    QJsonValueRef previewObject = subObject[ep.properties.preview];
                     if(!previewObject.isNull() && previewObject.isString())
                     {
                         QString previewString = previewObject.toString();
@@ -70,7 +135,7 @@ DirectoryIndexer::DirectoryIndexer()
                     }
 
                     // ADD FULL
-                    QJsonValueRef fullObject = subObject["file_url"];
+                    QJsonValueRef fullObject = subObject[ep.properties.full];
                     if(!fullObject.isNull() && fullObject.isString())
                     {
                         QString fullString = fullObject.toString();
@@ -85,12 +150,17 @@ DirectoryIndexer::DirectoryIndexer()
                         }
                     }
 
-                    // ADD TAGS_GENERAL
-                    applyTaggingInformation(&result, subObject["tag_string_artist"], TagType::ARTIST);
-                    applyTaggingInformation(&result, subObject["tag_string_copyright"], TagType::COPYRIGHT);
-                    applyTaggingInformation(&result, subObject["tag_string_character"], TagType::CHARACTER);
-                    applyTaggingInformation(&result, subObject["tag_string_general"], TagType::GENERAL);
-                    applyTaggingInformation(&result, subObject["tag_string_meta"], TagType::META);
+                    // ADD TAGS
+                    if(ep.properties.tags.artist.has_value())
+                        applyTaggingInformation(&result, subObject[ep.properties.tags.artist.value()], TagType::ARTIST);
+                    if (ep.properties.tags.copyright.has_value())
+                        applyTaggingInformation(&result, subObject[ep.properties.tags.copyright.value()], TagType::COPYRIGHT);
+                    if (ep.properties.tags.character.has_value())
+                        applyTaggingInformation(&result, subObject[ep.properties.tags.character.value()], TagType::CHARACTER);
+                    if (ep.properties.tags.general.has_value())
+                        applyTaggingInformation(&result, subObject[ep.properties.tags.general.value()], TagType::GENERAL);
+                    if (ep.properties.tags.meta.has_value())
+                        applyTaggingInformation(&result, subObject[ep.properties.tags.meta.value()], TagType::META);
 
                     applyFileTypeInformation(&result);
 
@@ -174,10 +244,13 @@ QList<QUrl> DirectoryIndexer::openFileSelector(QWidget* parent) const
 
 void DirectoryIndexer::indexDirectoryNetwork(QString query, int page) const
 {
+    DirectoryEndpoint ep = endpointMap[currentEndpoint];
+
     // TODO: Add API key options
-    QString endpoint("https://danbooru.donmai.us/posts.json?tags=[search]&page=[page]&limit=100");
-    endpoint = endpoint.replace(QString("[search]"), query);
-    endpoint = endpoint.replace(QString("[page]"), QString::number(page));
+	QString endpoint(ep.endpoint.url.toString());
+    endpoint = endpoint.replace(QString("[search]"), query, Qt::CaseInsensitive);
+    endpoint = endpoint.replace(QString("[page]"), QString::number(page), Qt::CaseInsensitive);
+    endpoint = endpoint.replace(QString("[limit]"), QString::number(100), Qt::CaseInsensitive);
 
     jsonNetworkManager->get(QNetworkRequest(QUrl(endpoint)));
 }
@@ -226,6 +299,20 @@ void DirectoryIndexer::applyFileTypeInformation(DirectoryResult* result) const
             }
         }
     }
+}
+
+void DirectoryIndexer::setEndpoint(QString endpoint)
+{
+    if (this->currentlyIndexing) {
+        qWarning() << "warning: cannot set endpoint while indexing";
+        return;
+    }
+    this->currentEndpoint = endpoint;
+}
+
+QMap<QString, DirectoryEndpoint> DirectoryIndexer::getEndpointMap()
+{
+    return endpointMap;
 }
 
 QString DirectoryIndexer::fileTypeToDisplayString(const FileType type)

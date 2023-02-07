@@ -1,0 +1,18 @@
+{
+  "name": "Danbooru",
+  "endpoint": {
+    "url": "https://danbooru.donmai.us/posts.json?tags=[search]&page=[page]&limit=[limit]",
+    "type": "json_api"
+  },
+  "properties": {
+    "preview": "preview_file_url",
+    "full": "file_url",
+    "tags": {
+      "artist": "tag_string_artist",
+      "copyright": "tag_string_copyright",
+      "character": "tag_string_character",
+      "general": "tag_string_general",
+      "meta": "tag_string_meta"
+    }
+  }
+}

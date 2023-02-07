@@ -17,7 +17,6 @@ enum IndexType
     NETWORKAPI,
     UNKNOWNINDEX,
 };
-
 enum FileType
 {
     VIDEO,
@@ -25,7 +24,6 @@ enum FileType
     GIF,
     UNKNOWNFILE,
 };
-
 enum TagType
 {
     GENERAL,
@@ -34,12 +32,45 @@ enum TagType
     ARTIST,
     META
 };
+enum DirectoryEndpointType
+{
+	JsonApi,
+	Unknown,
+};
 
-typedef struct TagResult_S
+typedef struct DirectoryTagResult_S
 {
     QString tag;
     TagType type;
 } TagResult;
+
+typedef struct DirectoryPropertiesTags_S
+{
+	std::optional<QString> artist;
+    std::optional<QString> copyright;
+    std::optional<QString> character;
+    std::optional<QString> general;
+    std::optional<QString> meta;
+} DirectoryPropertiesTags;
+
+typedef struct DirectoryEndpointProperties_S
+{
+    QUrl url;
+    DirectoryEndpointType type;
+} DirectoryEndpointProperties;
+typedef struct DirectoryProperties_S
+{
+    QString preview;
+    QString full;
+    std::optional<QString> root;
+    DirectoryPropertiesTags tags;
+} DirectoryProperties;
+typedef struct DirectoryEndpoint_S
+{
+    QString name;
+    DirectoryEndpointProperties endpoint;
+    DirectoryProperties properties;
+} DirectoryEndpoint;
 
 typedef struct DirectoryResult_S
 {
@@ -78,6 +109,9 @@ public:
 
     void applyFileTypeInformation(DirectoryResult* result) const;
 
+    void setEndpoint(QString endpoint);
+    QMap<QString, DirectoryEndpoint> getEndpointMap();
+
     bool currentlyIndexing;
 private:
     void indexDirectoryNetwork(QString query, int page) const;
@@ -90,7 +124,9 @@ private:
     QNetworkAccessManager* jsonNetworkManager;
 
     QMap<QString, FileType> extensionMap;
+    QMap<QString, DirectoryEndpoint> endpointMap;
 
+    QString currentEndpoint;
 signals:
     void finished(QList<DirectoryResult> results, IndexType type);
     void onCurrentlyIndexingChange(bool currentlyIndexing);
