@@ -183,5 +183,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/tags.json ${CMAKE_CURRENT_B
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/danbooru.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/danbooru.json COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/gelbooru.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/gelbooru.json COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/e621.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/e621.json COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/yandere.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/yandere.json COPYONLY)
 
 

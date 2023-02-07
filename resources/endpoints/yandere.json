@@ -1,0 +1,14 @@
+{
+  "name": "Yande.re",
+  "endpoint": {
+    "url": "https://yande.re/post.json?tags=[search]&page=[page]&limit=[limit]",
+    "type": "json_api"
+  },
+  "properties": {
+    "preview": "preview_url",
+    "full": "file_url",
+    "tags": {
+      "general": "tags"
+    }
+  }
+}
