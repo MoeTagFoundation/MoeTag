@@ -1,0 +1,19 @@
+{
+  "name": "e621",
+  "endpoint": {
+    "url": "https://e621.net/posts.json?limit=[limit]&tags=[search]&page=[page]",
+    "type": "json_api"
+  },
+  "properties": {
+    "preview": "preview.url",
+    "full": "file.url",
+    "root": "posts",
+    "tags": {
+      "artist": "tags.artist",
+      "copyright": "tags.copyright",
+      "character": "tags.character",
+      "general": "tags.general",
+      "meta": "tags.meta"
+    }
+  }
+}

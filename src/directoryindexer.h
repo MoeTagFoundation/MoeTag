@@ -117,9 +117,12 @@ private:
     void indexDirectoryNetwork(QString query, int page) const;
     void indexDirectoryFilesystem(QPromise<void>& promise, QList<QUrl> urls);
 
-    void applyTaggingInformation(DirectoryResult* result, QJsonValueRef property, TagType type);
+    void applyTaggingInformation(DirectoryResult* result, QString tags, TagType type);
 
     void setCurrentlyIndexing(bool currentlyIndexing);
+
+    void decodeEndpoints();
+    QString endpointPathToValue(QJsonObject object, QString path);
 
     QNetworkAccessManager* jsonNetworkManager;
 

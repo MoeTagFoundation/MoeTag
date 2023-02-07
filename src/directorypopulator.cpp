@@ -138,6 +138,7 @@ void DirectoryPopulator::populateDirectory(QList<DirectoryResult> ind, IndexType
             } else if (directory.thumbnailFileType == FileType::IMAGE || directory.thumbnailFileType == FileType::GIF) {          
                 QNetworkRequest request(QUrl(directory.thumbnailSource));
                 request.setSslConfiguration(config);
+                request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; en-US; rv:1.9.0.20) Gecko/20150609 Firefox/35.0");
                 indexes->insert(thumbnailNetworkManager->get(request), directory);
             } else {
                 qWarning() << "warning: unsupported thumbnailFileType, cannot generate preview";
@@ -158,6 +159,7 @@ void DirectoryPopulator::populateDirectory(QList<DirectoryResult> ind, IndexType
 
             QNetworkRequest request(QUrl(directory.contentSource));
             request.setSslConfiguration(config);
+            request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; en-US; rv:1.9.0.20) Gecko/20150609 Firefox/35.0");
             QNetworkReply* reply = imageNetworkManager->get(request);
             connect(reply, &QNetworkReply::downloadProgress, this, [=](qint64 b1, qint64 b2){
                 emit fullProgress(directory.uuid, b1, b2);

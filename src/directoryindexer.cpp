@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFileInfoList>
 #include <QJsonObject>
+#include <QNetworkRequest>
 #include <QtConcurrent>
 
 // todo: put all hard-coded paths into a config
@@ -13,61 +14,7 @@ DirectoryIndexer::DirectoryIndexer()
 {
     setCurrentlyIndexing(false);
 
-    qDebug() << "======= loading endpoints =======";
-    QDir epDir(epBaseDir);
-    QStringList eps = epDir.entryList(QStringList() << "*.json" << "*.JSON", QDir::Files);
-    for (QString ep : eps)
-    {
-        QFile epFile(epBaseDir + ep);
-        if (epFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QByteArray epBytes = epFile.readAll();
-            epFile.close();
-            QJsonDocument epJson = QJsonDocument::fromJson(epBytes);
-            if (!epJson.isNull() && !epJson.isEmpty())
-            {
-                // Root
-                DirectoryEndpoint directoryEndpoint;
-                QString pName = epJson.object().value("name").toString();
-				directoryEndpoint.name = pName;
-                // Root/Endpoint
-                DirectoryEndpointProperties directoryEndpointProperties;
-                QJsonObject pEndpoint = epJson.object().value("endpoint").toObject();
-                directoryEndpointProperties.url = pEndpoint.value("url").toString();
-                directoryEndpoint.endpoint = directoryEndpointProperties;
-                // Root/Properties
-                DirectoryProperties directoryProperties;
-                QJsonObject pProperties = epJson.object().value("properties").toObject();
-                directoryProperties.preview = pProperties.value("preview").toString();
-                directoryProperties.full = pProperties.value("full").toString();
-                if (pProperties.contains("root")) {
-                    directoryProperties.root = pProperties.value("root").toString();
-                } else { directoryProperties.root = std::nullopt; }
-                // Root/Properties/Tags
-                DirectoryPropertiesTags directoryPropertiesTags;
-                QJsonObject pPropertiesTags = pProperties.value("tags").toObject();
-                if (pPropertiesTags.contains("artist"))
-                    directoryPropertiesTags.artist = pPropertiesTags.value("artist").toString();
-                if (pPropertiesTags.contains("copyright"))
-                    directoryPropertiesTags.copyright = pPropertiesTags.value("copyright").toString();
-                if (pPropertiesTags.contains("character"))
-					directoryPropertiesTags.character = pPropertiesTags.value("character").toString();
-				if (pPropertiesTags.contains("general"))
-                    directoryPropertiesTags.general = pPropertiesTags.value("general").toString();
-                if (pPropertiesTags.contains("meta"))
-                    directoryPropertiesTags.meta = pPropertiesTags.value("meta").toString();
-                directoryProperties.tags = directoryPropertiesTags;
-                directoryEndpoint.properties = directoryProperties;
-                // Insert
-                endpointMap.insert(ep, directoryEndpoint);
-				qDebug() << "debug: loading in " << ep << " with name " << pName;
-            } else {
-                qWarning() << "warning: epJson null for: " << ep;
-            }
-        }
-        else {
-            qWarning() << "warning: failed to open epFile: " << ep;
-        }
-    }
+    decodeEndpoints();
 
     extensionMap.insert(".png", FileType::IMAGE);
     extensionMap.insert(".bmp", FileType::IMAGE);
@@ -93,6 +40,8 @@ DirectoryIndexer::DirectoryIndexer()
             QByteArray jsonBytes = reply->readAll();
             QString jsonString(jsonBytes.toStdString().c_str());
             QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonString.toUtf8());
+
+            qDebug() << jsonString;
 
             if(jsonDocument.isNull()) { qWarning("warning: json null in indexer network"); return; }
 
@@ -120,47 +69,30 @@ DirectoryIndexer::DirectoryIndexer()
                     result.uuid = QUuid::createUuid();
 
                     // ADD PREVIEW
-                    QJsonValueRef previewObject = subObject[ep.properties.preview];
-                    if(!previewObject.isNull() && previewObject.isString())
+                    result.thumbnailSource = endpointPathToValue(subObject, ep.properties.preview);
+                    // ADD FULL (todo: .zip skip)
+                    result.contentSource = endpointPathToValue(subObject, ep.properties.full);
+                    if (result.thumbnailSource.isEmpty())
                     {
-                        QString previewString = previewObject.toString();
-                        if(!previewString.isNull() && !previewString.isEmpty())
-                        {
-                            result.thumbnailSource = previewString;
-                        } else {
-                            continue;
-                        }
-                    } else {
+						qWarning() << "warning: thumbnail source empty, skipping";
+						continue;
+                    } else if (result.thumbnailSource.endsWith(".zip"))
+                    {
+                        qWarning() << "warning: .zip files are not supported, skipping";
                         continue;
-                    }
-
-                    // ADD FULL
-                    QJsonValueRef fullObject = subObject[ep.properties.full];
-                    if(!fullObject.isNull() && fullObject.isString())
-                    {
-                        QString fullString = fullObject.toString();
-                        if(!fullString.isNull() && !fullString.isEmpty())
-                        {
-                            if(fullString.endsWith(".zip"))
-                            {
-                                qWarning() << "warning: .zip files or ugoira files are not supported yet, skipping";
-                                continue;
-                            }
-                            result.contentSource = fullString;
-                        }
                     }
 
                     // ADD TAGS
                     if(ep.properties.tags.artist.has_value())
-                        applyTaggingInformation(&result, subObject[ep.properties.tags.artist.value()], TagType::ARTIST);
+                        applyTaggingInformation(&result, endpointPathToValue(subObject, ep.properties.tags.artist.value()), TagType::ARTIST);
                     if (ep.properties.tags.copyright.has_value())
-                        applyTaggingInformation(&result, subObject[ep.properties.tags.copyright.value()], TagType::COPYRIGHT);
+                        applyTaggingInformation(&result, endpointPathToValue(subObject, ep.properties.tags.copyright.value()), TagType::COPYRIGHT);
                     if (ep.properties.tags.character.has_value())
-                        applyTaggingInformation(&result, subObject[ep.properties.tags.character.value()], TagType::CHARACTER);
+                        applyTaggingInformation(&result, endpointPathToValue(subObject, ep.properties.tags.character.value()), TagType::CHARACTER);
                     if (ep.properties.tags.general.has_value())
-                        applyTaggingInformation(&result, subObject[ep.properties.tags.general.value()], TagType::GENERAL);
+                        applyTaggingInformation(&result, endpointPathToValue(subObject, ep.properties.tags.general.value()), TagType::GENERAL);
                     if (ep.properties.tags.meta.has_value())
-                        applyTaggingInformation(&result, subObject[ep.properties.tags.meta.value()], TagType::META);
+                        applyTaggingInformation(&result, endpointPathToValue(subObject, ep.properties.tags.meta.value()), TagType::META);
 
                     applyFileTypeInformation(&result);
 
@@ -179,24 +111,116 @@ DirectoryIndexer::DirectoryIndexer()
     });
 }
 
-void DirectoryIndexer::applyTaggingInformation(DirectoryResult *result, QJsonValueRef property, TagType type)
+void DirectoryIndexer::applyTaggingInformation(DirectoryResult *result, QString tags, TagType type)
 {
-    if(!property.isNull() && property.isString())
-    {
-        QString tagString = property.toString();
-        QVector<QString> splitTags = tagString.split(' ');
-        for(const QString& st : splitTags) {
-            if(!st.isNull() && !st.isEmpty()) {
-                result->tags.append(TagResult{ st, type });
-            }
-        }
-    }
+	QVector<QString> splitTags = tags.split(' ');
+	for (const QString& st : splitTags) {
+		if (!st.isNull() && !st.isEmpty()) {
+			result->tags.append(TagResult{ st, type });
+		}
+	}
 }
 
 void DirectoryIndexer::setCurrentlyIndexing(bool currentlyIndexing)
 {
     this->currentlyIndexing = currentlyIndexing;
     emit onCurrentlyIndexingChange(currentlyIndexing);
+}
+
+void DirectoryIndexer::decodeEndpoints()
+{
+	qDebug() << "======= loading endpoints =======";
+	QDir epDir(epBaseDir);
+	QStringList eps = epDir.entryList(QStringList() << "*.json" << "*.JSON", QDir::Files);
+	for (QString ep : eps)
+	{
+		QFile epFile(epBaseDir + ep);
+		if (epFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			QByteArray epBytes = epFile.readAll();
+			epFile.close();
+			QJsonDocument epJson = QJsonDocument::fromJson(epBytes);
+			if (!epJson.isNull() && !epJson.isEmpty())
+			{
+				// Root
+				DirectoryEndpoint directoryEndpoint;
+				QString pName = epJson.object().value("name").toString();
+				directoryEndpoint.name = pName;
+				// Root/Endpoint
+				DirectoryEndpointProperties directoryEndpointProperties;
+				QJsonObject pEndpoint = epJson.object().value("endpoint").toObject();
+				directoryEndpointProperties.url = pEndpoint.value("url").toString();
+				directoryEndpoint.endpoint = directoryEndpointProperties;
+				// Root/Properties
+				DirectoryProperties directoryProperties;
+				QJsonObject pProperties = epJson.object().value("properties").toObject();
+                directoryProperties.preview = pProperties.value("preview").toString();
+				directoryProperties.full = pProperties.value("full").toString();
+				if (pProperties.contains("root")) {
+					directoryProperties.root = pProperties.value("root").toString();
+				}
+				else { directoryProperties.root = std::nullopt; }
+				// Root/Properties/Tags
+				DirectoryPropertiesTags directoryPropertiesTags;
+				QJsonObject pPropertiesTags = pProperties.value("tags").toObject();
+				if (pPropertiesTags.contains("artist"))
+					directoryPropertiesTags.artist = pPropertiesTags.value("artist").toString();
+				if (pPropertiesTags.contains("copyright"))
+					directoryPropertiesTags.copyright = pPropertiesTags.value("copyright").toString();
+				if (pPropertiesTags.contains("character"))
+					directoryPropertiesTags.character = pPropertiesTags.value("character").toString();
+				if (pPropertiesTags.contains("general"))
+					directoryPropertiesTags.general = pPropertiesTags.value("general").toString();
+				if (pPropertiesTags.contains("meta"))
+					directoryPropertiesTags.meta = pPropertiesTags.value("meta").toString();
+				directoryProperties.tags = directoryPropertiesTags;
+				directoryEndpoint.properties = directoryProperties;
+				// Insert
+				endpointMap.insert(ep, directoryEndpoint);
+				qDebug() << "debug: loading in " << ep << " with name " << pName;
+			}
+			else {
+				qWarning() << "warning: epJson null for: " << ep;
+			}
+		}
+		else {
+			qWarning() << "warning: failed to open epFile: " << ep;
+		}
+	}
+}
+
+QString DirectoryIndexer::endpointPathToValue(QJsonObject object, QString path)
+{
+    QStringList splitPath = path.split(".");
+    QJsonObject currentObject = object;
+    for (QString path : splitPath)
+    {
+        if (currentObject.contains(path))
+        {
+            if (currentObject.value(path).isObject())
+            {
+                currentObject = currentObject.value(path).toObject();
+            }
+            else if (currentObject.value(path).isString())
+            {
+                return currentObject.value(path).toString();
+            }
+            else if (currentObject.value(path).isArray())
+            {
+                QJsonArray arr = currentObject.value(path).toArray();
+                QString builtString("");
+                for (int i = 0; i < arr.size(); i++)
+                {
+                    if (arr.at(i).isString())
+                    {
+                        builtString.append(arr.at(i).toString());
+                        builtString.append(" ");
+                    }
+                }
+                return builtString;
+            }
+        }
+    }
+    return QString("");
 }
 
 DirectoryIndexer::~DirectoryIndexer()
@@ -252,7 +276,10 @@ void DirectoryIndexer::indexDirectoryNetwork(QString query, int page) const
     endpoint = endpoint.replace(QString("[page]"), QString::number(page), Qt::CaseInsensitive);
     endpoint = endpoint.replace(QString("[limit]"), QString::number(100), Qt::CaseInsensitive);
 
-    jsonNetworkManager->get(QNetworkRequest(QUrl(endpoint)));
+    QUrl epa(endpoint);
+    QNetworkRequest requt(epa);
+    requt.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; en-US; rv:1.9.0.20) Gecko/20150609 Firefox/35.0");
+    jsonNetworkManager->get(requt);
 }
 
 void DirectoryIndexer::indexDirectoryFilesystem(QPromise<void>& promise, QList<QUrl> urls)

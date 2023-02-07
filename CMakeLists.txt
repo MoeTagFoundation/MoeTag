@@ -176,11 +176,12 @@ if (WIN32)
     file(COPY ${FFMPEG_BIN} DESTINATION ${CMAKE_BINARY_DIR})
 endif()
 
-message("Copying over tags")
-
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources/tags.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources/)
-
-# Default endpoints
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/danbooru.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints)
+message("Setting up resources")
+# Tag resources
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/tags.json ${CMAKE_CURRENT_BINARY_DIR}/resources/tags.json COPYONLY)
+# Endpoint resources
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/danbooru.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/danbooru.json COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/gelbooru.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/gelbooru.json COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/endpoints/e621.json ${CMAKE_CURRENT_BINARY_DIR}/resources/endpoints/e621.json COPYONLY)
 
 
