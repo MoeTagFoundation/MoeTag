@@ -78,7 +78,7 @@ DirectoryIndexer::DirectoryIndexer()
                         {
                             if(fullString.endsWith(".zip"))
                             {
-                                qWarning() << "warning: .zip files or ugoria files are not supported yet, skipping";
+                                qWarning() << "warning: .zip files or ugoira files are not supported yet, skipping";
                                 continue;
                             }
                             result.contentSource = fullString;

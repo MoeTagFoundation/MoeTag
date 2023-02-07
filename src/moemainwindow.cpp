@@ -965,6 +965,4 @@ MoeMainWindow::~MoeMainWindow()
         delete directoryButtonNetwork;
     if(directorySearchEdit != nullptr)
         delete directorySearchEdit;
-    if(completer != nullptr)
-        delete completer;
 }
