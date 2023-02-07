@@ -93,14 +93,19 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     QComboBox* networkConfiguration = new QComboBox(groupBox);
     //networkConfiguration->setText(tr("Config"));
 
-    QStringList endpoints = directoryIndexer.getEndpointMap().keys();
-    for (QString endpoint : endpoints) {
-        networkConfiguration->addItem(endpoint);
+    auto endpoints = directoryIndexer.getEndpointMap();
+    for (auto& endpoint : endpoints.keys()) {
+        auto& ep = endpoints[endpoint];
+        networkConfiguration->addItem(ep.name, endpoint);
     }
-    connect(networkConfiguration, &QComboBox::currentTextChanged, [=](const QString& txt) {
-        directoryIndexer.setEndpoint(txt);
+    connect(networkConfiguration, &QComboBox::currentIndexChanged, [=](int index) {
+        if (index >= 0) {
+            QVariant v = networkConfiguration->itemData(index);
+            if(v.isValid())
+                directoryIndexer.setEndpoint(v.toString());
+        }
     });
-    directoryIndexer.setEndpoint(networkConfiguration->currentText());
+    directoryIndexer.setEndpoint(networkConfiguration->currentData().toString());
 
     groupBox->setLayout(groupBoxHorizontal);
     groupBoxHorizontal->addWidget(directoryButtonNetwork);
@@ -589,8 +594,6 @@ void MoeMainWindow::dropEvent(QDropEvent *event)
             // Populate directory previews
             directoryPopulator.populateDirectory(results, IndexType::NETWORKAPI, PopulateType::PREVIEW);
             // Populate directory full
-
-            //directoryPopulator.populateDirectory(results, IndexType::NETWORKAPI, PopulateType::FULL);
         }
         else if(event->mimeData()->hasText())
         {
@@ -603,7 +606,6 @@ void MoeMainWindow::dropEvent(QDropEvent *event)
 		// Add some DirectoryResult objects to the list...
 
 		DirectoryResult search;
-		// Set the values of the search object...
     }
 }
 
@@ -613,15 +615,17 @@ void MoeMainWindow::nextTab()
 	bool f{};
 	for (auto widget : widgets)
 	{
-		if (f)
-		{
-			widget->setAsCurrentTab();
-			break;
-		}
-		else if (widget->isCurrentTab())
-		{
-			f = true;
-		}
+        if (widget != nullptr) {
+            if (f)
+            {
+                widget->setAsCurrentTab();
+                break;
+            }
+            else if (widget->isCurrentTab())
+            {
+                f = true;
+            }
+        }
 	}
 }
 
@@ -641,15 +645,17 @@ void MoeMainWindow::previousTab()
 	bool f{};
 	for (auto widget : widgets)
 	{
-		if (f)
-		{
-			widget->setAsCurrentTab();
-			break;
-		}
-		else if (widget->isCurrentTab())
-		{
-			f = true;
-		}
+        if (widget != nullptr) {
+            if (f)
+            {
+                widget->setAsCurrentTab();
+                break;
+            }
+            else if (widget->isCurrentTab())
+            {
+                f = true;
+            }
+        }
 	}
 }
 
@@ -676,7 +682,6 @@ void MoeMainWindow::createTab(QSharedPointer<DirectoryResult> directory, TabType
 
 		connect(player, &QMediaPlayer::bufferProgressChanged, [=](float progress) {
 			if (data.directory != nullptr) {
-				qDebug() << "setting video buffer to: " << progress;
 				setDirectoryPopulationProgress(data.directory->uuid, progress);
 			}
 		});
@@ -820,7 +825,7 @@ void MoeMainWindow::refreshDirectoryData(QSharedPointer<DirectoryResult> directo
                             }
                         });
                     } else {
-                        qWarning() << "Invalid QMovie Error: " << data.value().imageMovie->lastErrorString();
+                        qWarning() << "warning: imagemovie not valid: " << data.value().imageMovie->lastErrorString();
                     }
                     data.value().imageWidget->setMovie(data.value().imageMovie);
                     data.value().imageMovie->start();

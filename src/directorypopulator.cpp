@@ -93,7 +93,6 @@ DirectoryPopulator::DirectoryPopulator()
 
             if(result.contentFileType == FileType::GIF)
             {
-                qDebug() << "Loading GIF: " << reply->url().toString();
                 QBuffer* buffer = new QBuffer(); // needs parent?
                 buffer->setData(bytes);
                 result.contentGif = buffer;
@@ -116,8 +115,8 @@ DirectoryPopulator::~DirectoryPopulator()
 
 void DirectoryPopulator::populateDirectory(QList<DirectoryResult> ind, IndexType indexType, PopulateType type)
 {
-    qDebug() << "debug: going to populate using ossl: " << QSslSocket::sslLibraryBuildVersionString();
-    qDebug() << "debug: Supports TLS1.2 " << QSslSocket::isProtocolSupported(QSsl::TlsV1_2OrLater);
+    qDebug() << "debug: current ssl library build version: " << QSslSocket::sslLibraryBuildVersionString();
+    qDebug() << "debug: is tlsv1.2 or later supported: " << QSslSocket::isProtocolSupported(QSsl::TlsV1_2OrLater);
 
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     if(!config.isNull()) {
