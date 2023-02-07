@@ -340,9 +340,9 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
 
     connect(didm, &QtAdsUtl::DockInDockManager::dockWidgetAboutToBeRemoved, this, [&](ads::CDockWidget* widget) {
         if (widget != nullptr && widget->widget() != nullptr) {
-
-            if (tabData.contains(widget->widget())) {
-                TabData data = tabData[widget->widget()];
+            QWidget* tabWidget = widget->widget();
+            if (tabData.contains(tabWidget)) {
+                TabData data = tabData[tabWidget];
 
                 if (data.mpvPlayer != nullptr) {
                     data.mpvPlayer->stop();
@@ -364,10 +364,11 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
                     directoryListModel->deleteDirectoryData(*data.directory);
                     data.directory = nullptr;
                 }
+
+				tabData.remove(tabWidget);
             }
         }
     });
-
 
     // File Actions
     QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
@@ -784,7 +785,7 @@ bool MoeMainWindow::swapTab(const QUuid uuid)
 {
     std::optional<TabData> widgetOptional = getTab(uuid);
     if(widgetOptional.has_value()) {
-        if(ViewingDockWidget->isTabbed()) {
+        if(ViewingDockWidget->isTabbed() && !ViewingDockWidget->isClosed()) {
             ViewingDockWidget->setAsCurrentTab();
         }
         if(widgetOptional->dockWidget != nullptr) {
