@@ -31,8 +31,7 @@ private:
     QMap<QNetworkReply*, DirectoryResult>* indexes;
     FFMpegThumbnailer *thumbnailer;
 
-    int current;
-    int target;
+    int target = 0;
 signals:
     void finishedResult(DirectoryResult result, PopulateType type);
 

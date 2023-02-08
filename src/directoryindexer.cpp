@@ -6,9 +6,7 @@
 #include <QJsonObject>
 #include <QNetworkRequest>
 #include <QtConcurrent>
-
-// todo: put all hard-coded paths into a config
-static QString epBaseDir("./resources/endpoints/");
+#include "moeglobals.h"
 
 DirectoryIndexer::DirectoryIndexer()
 {
@@ -130,11 +128,11 @@ void DirectoryIndexer::setCurrentlyIndexing(bool currentlyIndexing)
 void DirectoryIndexer::decodeEndpoints()
 {
 	qDebug() << "======= loading endpoints =======";
-	QDir epDir(epBaseDir);
+	QDir epDir(g_endpointDirectory);
 	QStringList eps = epDir.entryList(QStringList() << "*.json" << "*.JSON", QDir::Files);
 	for (QString ep : eps)
 	{
-		QFile epFile(epBaseDir + ep);
+		QFile epFile(g_endpointDirectory + ep);
 		if (epFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 			QByteArray epBytes = epFile.readAll();
 			epFile.close();
@@ -276,10 +274,10 @@ void DirectoryIndexer::indexDirectoryNetwork(QString query, int page) const
     endpoint = endpoint.replace(QString("[page]"), QString::number(page), Qt::CaseInsensitive);
     endpoint = endpoint.replace(QString("[limit]"), QString::number(100), Qt::CaseInsensitive);
 
-    QUrl epa(endpoint);
-    QNetworkRequest requt(epa);
-    requt.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; en-US; rv:1.9.0.20) Gecko/20150609 Firefox/35.0");
-    jsonNetworkManager->get(requt);
+    QUrl endpointUrl(endpoint);
+    QNetworkRequest request(endpointUrl);
+    request.setRawHeader("User-Agent", g_userAgent.toUtf8());
+    jsonNetworkManager->get(request);
 }
 
 void DirectoryIndexer::indexDirectoryFilesystem(QPromise<void>& promise, QList<QUrl> urls)

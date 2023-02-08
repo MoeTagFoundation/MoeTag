@@ -41,9 +41,7 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     setTabShape(QTabWidget::Triangular);
     resize(1025, 530);
     setMinimumSize(QSize(260, 160));
-
     setWindowTitle(QString("MoeTag"));
-
     setAcceptDrops(true);
     setEnabled(true);
 
@@ -75,9 +73,6 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     directoryListView->setIconSize(QSize(g_thumbWidth / directoryRenderScale, g_thumbHeight / directoryRenderScale));
     directoryListView->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    //directoryButtonLocal = new QPushButton(navigationWidgetContents);
-    //directoryButtonLocal->setText(tr("Import Content (FS)"));
-
     QWidget* groupBox = new QWidget(navigationWidgetContents);
 
     QHBoxLayout * groupBoxHorizontal = new QHBoxLayout(groupBox);
@@ -91,8 +86,6 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     directoryButtonNetwork->setText(tr("Search Content (API)"));
     // CONFIG BUTTON
     QComboBox* networkConfiguration = new QComboBox(groupBox);
-    //networkConfiguration->setText(tr("Config"));
-
     auto endpoints = directoryIndexer.getEndpointMap();
     for (auto& endpoint : endpoints.keys()) {
         auto& ep = endpoints[endpoint];
@@ -125,7 +118,7 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     // Build completer
     completer = new DelimitedCompleter(directorySearchEdit, ' ', getTagsFromFile());
     completer->setCaseSensitivity(Qt::CaseInsensitive);
-    directorySearchEdit->setPlaceholderText("enter search query (i.e idol, red_hair)");
+    directorySearchEdit->setPlaceholderText(tr("enter search query (e.g. idol red_hair)"));
 
     navigationFooter = new QWidget(navigationWidgetContents);
     QHBoxLayout* navigationFooterLayout = new QHBoxLayout(navigationFooter);
@@ -136,7 +129,7 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
     navigationFooter->setLayout(navigationFooterLayout);
 
     progressBar = new QProgressBar(navigationFooter);
-    progressBar->setFormat(QString(tr("%p%"))); //  Loaded (#%v of %m)
+    progressBar->setFormat(tr("%p%")); //  Loaded (#%v of %m)
 
     directoryButtonNextPage = new QPushButton(navigationFooter);
     directoryButtonNextPage->setText(tr("Next"));
@@ -190,12 +183,12 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
                     constructedMoeTagLabel += QString(" (x ") + QString::number(selected.size()) + QString(")");
                 return constructedMoeTagLabel;
             };
-            contextMenu.addAction(QString("Open in MoeTag") + construct_suffix(), this, [=]() {
+            contextMenu.addAction(tr("Open in MoeTag") + construct_suffix(), this, [=]() {
                 for(const QModelIndex& index : selected) {
                     selectView(index.row());
                 }
 			});
-            contextMenu.addAction(QString("Open in Browser") + construct_suffix(), this, [=]() {
+            contextMenu.addAction(tr("Open in Browser") + construct_suffix(), this, [=]() {
 				for (const QModelIndex& index : selected) {
 					QSharedPointer<DirectoryResult> result = directoryListModel->getDirectory(index.row());
 					if (result == nullptr)
@@ -235,7 +228,7 @@ MoeMainWindow::MoeMainWindow(QWidget *parent) : QMainWindow(parent)
                     // delete contentImage if it exists
                     directory->contentImage = result.contentImage;
                     directory->contentGif = result.contentGif;
-
+                    // refresh the directory data since its updated
                     refreshDirectoryData(directory);
                     return;
                 }
@@ -474,9 +467,10 @@ void MoeMainWindow::selectView(int64_t index)
         {
             directoryPopulator.populateDirectory(QList<DirectoryResult>{*result}, result->indexType, PopulateType::FULL);
         }
+        else {
+            refreshDirectoryData(result);
+        }
     }
-
-    refreshDirectoryData(result);
 }
 
 void MoeMainWindow::enterView(const QModelIndex &index)
@@ -496,8 +490,7 @@ void MoeMainWindow::copyContent(QSharedPointer<DirectoryResult> directory)
 
 	if (directory->contentFileType == FileType::IMAGE) {
 		QApplication::clipboard()->setPixmap(directory->contentImage, QClipboard::Mode::Clipboard);
-    }
-    else if (directory->contentFileType == FileType::GIF) {
+    } else if (directory->contentFileType == FileType::GIF) {
 		QMimeData* mimeData = new QMimeData;
         QString rawHtml = QString("<img src=\"") + directory->contentSource + QString("\" alt=\"") + directory->contentSource + QString("\" class=\"transparent\">");
         mimeData->setData("text/html", rawHtml.toUtf8());
@@ -508,7 +501,6 @@ void MoeMainWindow::copyContent(QSharedPointer<DirectoryResult> directory)
     } else {
         qWarning() << "warning: tried to copy unsupported format";
     }
-
 }
 
 void MoeMainWindow::saveContentLocation(QSharedPointer<DirectoryResult> directory)
@@ -666,7 +658,7 @@ void MoeMainWindow::createTab(QSharedPointer<DirectoryResult> directory, TabType
     tabWidget->setLayout(tabWidgetLayout);
 
     QProgressBar* progressBar = new QProgressBar(viewingWidgetContents);
-    progressBar->setFormat(QString(tr("%p%")));
+    progressBar->setFormat(tr("%p%"));
 
     TabData data;
     data.directory = directory;
@@ -875,7 +867,7 @@ void MoeMainWindow::setDirectoryPopulationProgress(QUuid uuid, float progress)
 
 QStringList MoeMainWindow::getTagsFromFile()
 {
-	QFile tagFile("resources/tags.json");
+	QFile tagFile(g_tagDirectory);
     if (tagFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QByteArray tagFileArray = tagFile.readAll();
         tagFile.close();
@@ -890,7 +882,7 @@ QStringList MoeMainWindow::getTagsFromFile()
         return tagStringList;
     }
     else {
-        qWarning() << "warning: failed to open resources/tags.json";
+        qWarning() << "warning: failed to open " << g_tagDirectory;
         return QStringList();
     }
 }
@@ -916,7 +908,7 @@ void MoeMainWindow::modifyDirectoryRenderScale(const float delta)
 void MoeMainWindow::setPage(int page)
 {
 	currentPage = page;
-	directoryCurrentPage->setText("Page: " + QString::number(currentPage));
+	directoryCurrentPage->setText(tr("Page: ") + QString::number(currentPage));
 	if (currentPage > 0) {
 		directoryButtonPreviousPage->setDisabled(false);
 	}
@@ -934,7 +926,6 @@ void MoeMainWindow::setTagList(QSharedPointer<DirectoryResult> directory)
 
     tagWidgetContents->clear();
     int index = 0;
-
     tagWidgetContents->setStyleSheet("QListWidget:item { }");
 
     for(const TagResult& tag : directory->tags)
