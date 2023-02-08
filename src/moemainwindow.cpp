@@ -632,7 +632,9 @@ void MoeMainWindow::closeTab()
 	ads::CDockWidget* widget = m_DockInDockManager->getManager()->focusedDockWidget();
 	if (widget != nullptr)
 	{
-		m_DockInDockManager->getManager()->removeDockWidget(widget);
+		if (tabData.contains(widget->widget())) {
+			m_DockInDockManager->getManager()->removeDockWidget(widget);
+		}
 	}
 }
 
