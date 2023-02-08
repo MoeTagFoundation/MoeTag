@@ -391,14 +391,14 @@ MoeMainWindow::MoeMainWindow(QWidget* parent) : QMainWindow(parent)
 		QDialog* dialog = new QDialog(this);
 	QVBoxLayout* boxLayout = new QVBoxLayout(dialog);
 	QLabel* information = new QLabel(dialog);
-	dialog->setWindowTitle("About MoeTag");
+	dialog->setWindowTitle(tr("About MoeTag"));
 	// TODO: maybe read from a file?
 	information->setText(
-		QString("<b>About MoeTag</b><hr><br>") +
-		QString("MoeTag is open source and licensed under the ") +
-		QString("<a href = \"https://www.gnu.org/licenses/gpl-3.0.en.html\">") +
-		QString("The GNU General Public License v3.0.</a><br><br>") +
-		QString("<i>@The Qt Company (QT 6.4.2), @FFmpeg, @KDE (FFmpegThumbs, Breeze), @githubuser0xFFFF, @MoeTag</i>"));
+		tr("<b>About MoeTag</b><hr><br>") +
+		tr("MoeTag is open source and licensed under the ") +
+		tr("<a href = \"https://www.gnu.org/licenses/gpl-3.0.en.html\">") +
+		tr("The GNU General Public License v3.0.</a><br><br>") +
+		tr("<i>@The Qt Company (QT 6.4.2), @FFmpeg, @KDE (FFmpegThumbs, Breeze), @githubuser0xFFFF, @MoeTag</i>"));
 	information->setTextFormat(Qt::RichText);
 	information->setTextInteractionFlags(Qt::TextBrowserInteraction);
 	information->setOpenExternalLinks(true);
@@ -411,7 +411,7 @@ MoeMainWindow::MoeMainWindow(QWidget* parent) : QMainWindow(parent)
 	menuBar()->show();
 
 	QMessageBox msgBox;
-	msgBox.setText("MoeTag is Alpha Software. Bugs and crashes are to be expected.");
+	msgBox.setText(tr("MoeTag is Alpha Software. Bugs and crashes are to be expected."));
 	msgBox.exec();
 }
 

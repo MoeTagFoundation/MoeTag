@@ -35,14 +35,23 @@ DirectoryIndexer::DirectoryIndexer()
 	if (error == QNetworkReply::NetworkError::NoError) {
 		DirectoryEndpoint ep = endpointMap[currentEndpoint];
 
+		// Read the bytes from network reply
 		QByteArray jsonBytes = reply->readAll();
-		QString jsonString(jsonBytes.toStdString().c_str());
-		QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonString.toUtf8());
-
-		qDebug() << jsonString;
-
-		if (jsonDocument.isNull()) { qWarning("warning: json null in indexer network"); return; }
-
+		if (!jsonBytes.isValidUtf8()) {
+			qWarning("warning: jsonBytes not valid utf8");
+			setCurrentlyIndexing(false);
+			emit finished(results, IndexType::NETWORKAPI);
+			return;
+		}
+		// Convert the bytes into a QJsonDocument
+		QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonBytes);
+		if (jsonDocument.isNull()) {
+			qWarning("warning: json null/non-object in indexer network");
+			setCurrentlyIndexing(false);
+			emit finished(results, IndexType::NETWORKAPI);
+			return;
+		}
+		// Find the root of the QJsonDocument
 		QJsonArray array;
 		if (ep.properties.root.has_value()) {
 			array = jsonDocument.object().value(ep.properties.root.value()).toArray();
@@ -50,10 +59,12 @@ DirectoryIndexer::DirectoryIndexer()
 		else {
 			array = jsonDocument.array();
 		}
-
-		if (array.count() == 0)
+		if (array.isEmpty())
 		{
-			qWarning() << "warning: 0 results returned, too many tags? endpoint down? no results?";
+			qWarning() << "warning: 0 results returned from endpoint";
+			setCurrentlyIndexing(false);
+			emit finished(results, IndexType::NETWORKAPI);
+			return;
 		}
 
 		QJsonArray::Iterator it;
