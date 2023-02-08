@@ -1,10 +1,11 @@
 #ifndef MOEMAINWINDOW_H
 #define MOEMAINWINDOW_H
 
-#include <QMainWindow>
 #include "directorylistmodel.h"
 #include "moepreviewlabel.h"
 #include "directorypopulator.h"
+
+#include <QMainWindow>
 #include <QAudioOutput>
 #include <QCompleter>
 #include <QLabel>
@@ -15,9 +16,8 @@
 #include <QShortcut>
 #include <QVideoWidget>
 
-// ADS
 #include <DockWidget.h>
-#include "dockindock/dockindock.h" // QtAdsUtl::DockInDockWidget
+#include "dockindock/dockindock.h"
 #include "dockindock/perspectives.h"
 
 namespace Ui {
