@@ -8,35 +8,32 @@
 
 enum PopulateType
 {
-    PREVIEW,
-    FULL,
+	PREVIEW,
+	FULL,
 };
 
 class DirectoryPopulator : public QObject
 {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    explicit DirectoryPopulator();
-    ~DirectoryPopulator();
-    void populateDirectory(QList<DirectoryResult> indexes, IndexType indexType, PopulateType type);
+	explicit DirectoryPopulator();
+	~DirectoryPopulator();
+	void populateDirectory(QList<DirectoryResult> indexes, IndexType indexType, PopulateType type);
 private:
-    void waitForTasksNet(QList<QNetworkReply*> replies, PopulateType type);
-    void waitForTasksFut(QList<QFuture<void>> replies, PopulateType type);
+	QImage* replyToImage(QNetworkReply* reply, QByteArray imageBytes);
+	QPixmap replyToPixmap(QNetworkReply* reply, QByteArray pixmapBytes);
 
-    QImage* replyToImage(QNetworkReply* reply, QByteArray imageBytes);
-    QPixmap replyToPixmap(QNetworkReply* reply, QByteArray pixmapBytes);
+	QNetworkAccessManager* thumbnailNetworkManager;
+	QNetworkAccessManager* imageNetworkManager;
+	QMap<QNetworkReply*, DirectoryResult>* indexes;
+	FFMpegThumbnailer* thumbnailer;
 
-    QNetworkAccessManager* thumbnailNetworkManager;
-    QNetworkAccessManager* imageNetworkManager;
-    QMap<QNetworkReply*, DirectoryResult>* indexes;
-    FFMpegThumbnailer *thumbnailer;
-
-    int target = 0;
+	int target = 0;
 signals:
-    void finishedResult(DirectoryResult result, PopulateType type);
+	void finishedResult(DirectoryResult result, PopulateType type);
 
-    void previewProgress(int current, int maximum);
-    void fullProgress(QUuid uuid, qint64 bytes, qint64 bytesTotal );
+	void previewProgress(int current, int maximum);
+	void fullProgress(QUuid uuid, qint64 bytes, qint64 bytesTotal);
 };
 
 #endif // DIRECTORYPOPULATOR_H

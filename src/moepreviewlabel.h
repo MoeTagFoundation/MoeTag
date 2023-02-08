@@ -6,19 +6,19 @@
 
 class MoePreviewLabel : public QLabel
 {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    explicit MoePreviewLabel(QWidget *parent = nullptr);
-    ~MoePreviewLabel();
+	explicit MoePreviewLabel(QWidget* parent = nullptr);
+	~MoePreviewLabel();
 
-    void resizeEvent(QResizeEvent *event) override;
-    void setInternalPixmap(QPixmap map);
+	void resizeEvent(QResizeEvent* event) override;
+	void setInternalPixmap(QPixmap map);
 
-    void setPixmapScaled(QPixmap image);
+	void setPixmapScaled(QPixmap image);
 private:
-    QPixmap internalPixmap;
+	QPixmap internalPixmap;
 
-    void updateScale();
+	void updateScale();
 signals:
 
 };
