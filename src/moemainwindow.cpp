@@ -680,6 +680,14 @@ void MoeMainWindow::createTab(QSharedPointer<DirectoryResult> directory, TabType
 		player->setSource(QUrl(data.directory->contentSource));
 		player->setLoops(QMediaPlayer::Infinite);
 
+		// Connect QMediaPlayer events for progress
+		connect(player, &QMediaPlayer::mediaStatusChanged, [=](QMediaPlayer::MediaStatus mediaStatus) {
+			if (mediaStatus == QMediaPlayer::MediaStatus::BufferedMedia) {
+				if (data.directory != nullptr) {
+					setDirectoryPopulationProgress(data.directory->uuid, 1.0f);
+				}
+			}
+			});
 		connect(player, &QMediaPlayer::bufferProgressChanged, [=](float progress) {
 			if (data.directory != nullptr) {
 				setDirectoryPopulationProgress(data.directory->uuid, progress);

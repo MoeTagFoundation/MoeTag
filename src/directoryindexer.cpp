@@ -87,9 +87,14 @@ DirectoryIndexer::DirectoryIndexer()
 					qWarning() << "warning: thumbnail source empty, skipping";
 					continue;
 				}
-				else if (result.thumbnailSource.endsWith(".zip"))
+				else if (result.thumbnailSource.endsWith(".zip") || result.thumbnailSource.endsWith(".rar"))
 				{
-					qWarning() << "warning: .zip files are not supported, skipping";
+					qWarning() << "warning: .zip/.rar files are not supported for thumbnails, skipping";
+					continue;
+				}
+				else if (result.contentSource.endsWith(".zip") || result.contentSource.endsWith(".rar"))
+				{
+					qWarning() << "warning: .zip/.rar files are not supported for content, skipping";
 					continue;
 				}
 
